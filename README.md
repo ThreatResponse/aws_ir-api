@@ -2,6 +2,26 @@
 A chalice API gateway wrapper around aws_ir.  
 **Highly experimental**
 
+## Preparation
+1. Create a role to associate with the privileges in this api ( incident-pony-role.json Coming soon. )
+2. Deploy that role.  Allow lambda.amazonaws.com to assumerole.  
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+```
+
 ## Getting Started with aws_ir-api
 
 1. Checkout aws_ir git submodule `git submodule update`
