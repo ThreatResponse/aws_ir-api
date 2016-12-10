@@ -5,6 +5,8 @@ A chalice API gateway wrapper around aws_ir.
 ## Preparation
 1. Create a role to associate with the privileges in this api ( incident-pony-role.json Coming soon. )
 2. Deploy that role.  Allow lambda.amazonaws.com to assumerole.  
+3. Update aws_ir-api/.chalice/config.json with the new role ARN. If this deployment is for Ephemeral Systems Incident-Pony do nothing. 
+
 
 ```
 {
