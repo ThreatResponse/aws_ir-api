@@ -1,3 +1,4 @@
-[submodule "aws_ir-api/aws_ir"]
-	path = aws_ir-api/aws_ir
-	url = https://github.com/ThreatResponse/aws_ir
+
+[submodule "aws_ir-api/chalicelib/aws_ir"]
+	path = aws_ir-api/chalicelib/aws_ir
+	url = git@github.com:ThreatResponse/aws_ir.git
