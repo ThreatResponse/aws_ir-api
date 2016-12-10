@@ -1,4 +1,6 @@
 {
-  "app_name": "ls", 
-  "stage": "dev"
+  "app_name": "aws_ir-api", 
+  "stage": "dev",
+  "manage_iam_role": "false",
+  "iam_role_arn": "arn:aws:iam::576309420438:role/incident_pony"
 }
