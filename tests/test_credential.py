@@ -11,6 +11,7 @@ from dotenv import Dotenv
 from api import credential
 
 def date_handler(obj):
+    """Convert awful date to iso"""
     if hasattr(obj, 'isoformat'):
         return obj.isoformat()
     else:
@@ -26,10 +27,8 @@ def get_token():
     )['Credentials']
 
     response['Expiration'] = response['Expiration'].isoformat()
-
-    response = base64.urlsafe_b64encode(json.dumps(response))
-
-
+    urlsafe_response = json.dumps(response)
+    response = base64.b64encode(urlsafe_response).encode('utf-8')
     return response
 
 
@@ -61,6 +60,7 @@ def dynamo_write(sort_key, credential):
     pass
 
 def dynamo_delete(sort_key):
+    """Test cleans up after itself"""
     dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
     table = dynamodb.Table('dev_credential')
     response = table.delete_item(
@@ -69,7 +69,6 @@ def dynamo_delete(sort_key):
         }
     )
     pass
-    
 
 SORT_KEY = fake_sort_key()
 def setup_test():
@@ -81,6 +80,36 @@ def test_object_instiation():
     c = credential.Credential(SORT_KEY)
     print ("setting up %s" % SORT_KEY)
     assert c.sort_key is SORT_KEY
+
+def test_reading_credential():
+    c = credential.Credential(SORT_KEY)
+    this_credential = c.read()
+    print this_credential
+    assert this_credential is not None
+    assert this_credential['SecretAccessKey'] is not None
+    assert this_credential['AccessKeyId'] is not None
+    assert this_credential['SessionToken'] is not None
+    assert this_credential['Expiration'] is not None
+
+def test_write_credential():
+    c = credential.Credential(SORT_KEY)
+    this_credential = c.write()
+    print this_credential
+    assert this_credential is not None
+    assert this_credential['SecretAccessKey'] is not None
+    assert this_credential['AccessKeyId'] is not None
+    assert this_credential['SessionToken'] is not None
+    assert this_credential['Expiration'] is not None
+
+def test_read_credential_check():
+    c = credential.Credential(SORT_KEY)
+    status = c.check('read')
+    assert status is True
+
+def test_write_credential_check():
+    c = credential.Credential(SORT_KEY)
+    status = c.check('write')
+    assert status is True
 
 def teardown_test():
     dynamo_delete(SORT_KEY)

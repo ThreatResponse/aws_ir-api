@@ -1,3 +1,5 @@
+bson
+faker
 dotenv
 pytest-xdist
 pytest
