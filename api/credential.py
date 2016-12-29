@@ -108,7 +108,7 @@ class Credential(object):
             )
             client.get_caller_identity()
 
-            return False
+            return True
         except:
             return False
 
