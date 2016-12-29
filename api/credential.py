@@ -3,6 +3,9 @@ import os
 import boto3
 import base64
 import json
+import dateutil.parser
+import datetime
+import time
 from dotenv import Dotenv
 
 """This class retreives credentials from Dyanmo in AWS for Incident Pony"""
@@ -29,12 +32,18 @@ class Credential(object):
     def check(self, operation):
         """Returns true or false against determination if \
         the credential is valid"""
+        if operation == 'read':
+            credential = self.read()
+        elif operation == 'write':
+            credential = self.write()
 
         #Test expiration if not expired try to use it
-
-        #Try using the cred by calling can_get_caller
-
-        pass
+        if self.__is_expired(credential) == True:
+            return False
+        elif self.__can_get_caller(credential) == False:
+            return False
+        else:
+            return True
 
     def read(self):
         """Returns the decrypted read credential from dyanmo database"""
@@ -87,15 +96,33 @@ class Credential(object):
 
         self.table = self.dynamodb.Table(self.table_name)
 
-    def __is_valid(self, credential):
-        """Test the validity of the stored credential"""
-        pass
-
     def __can_get_caller(self, credential):
         """Attempts sts get caller identity using the credential\
         returns truthieness to determine usability"""
-        pass
+        try:
+            client = boto3.client('sts',
+                aws_access_key_id=credential['AccessKeyId'],
+                aws_secret_access_key=credential['SecretAccessKey'],
+                aws_session_token=credential['SessionToken'],
+                region_name='us-west-2'
+            )
+            client.get_caller_identity()
+
+            return False
+        except:
+            return False
 
     def __is_expired(self, credential):
         """Checks expiration of sts token.  Is truthy."""
-        pass
+        try:
+            expiration = credential['Expiration']
+            expiration = dateutil.parser.parse(expiration)
+            expiration = expiration.strftime('%s')
+        except:
+            return True
+
+
+        if expiration < time.time():
+            return True
+        else:
+            return False
