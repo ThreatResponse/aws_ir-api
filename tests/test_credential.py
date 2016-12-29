@@ -112,5 +112,5 @@ def test_write_credential_check():
     assert status is True
 
 def teardown_test():
-    dynamo_delete(SORT_KEY)
+    #dynamo_delete(SORT_KEY)
     pass

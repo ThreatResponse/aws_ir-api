@@ -1,3 +1,7 @@
+
+import os
+import requests
+import json
 from chalice import Chalice
 from chalicelib import credential
 
@@ -24,6 +28,22 @@ def index():
     #credential.Credential('fhsdfdsfkjhfs')
     return {'AWS_IR-api': 'experimental'}
 
+@app.route('/credential', methods=['POST'], api_key_required=False)
+def credential_get():
+    post = app.current_request.json_body
+
+    c = credential.Credential(post['sort_key'])
+    print c.table_name
+
+    try:
+        check = c.check('read')
+        if check == True:
+            return {'status': 'valid'}
+        else:
+            return {'status': 'invalid'}
+    except:
+        print("Exception occured while calling")
+        return {'status': 'invalid'}
 
 # The view function above will return {"hello": "world"}
 # whenver you make an HTTP GET request to '/'.

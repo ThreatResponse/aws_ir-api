@@ -23,7 +23,11 @@ class Credential(object):
             env = Dotenv('./.env')
             credential_table = env["CREDENTIAL_TABLE_ARN"]
         except IOError:
-            env = os.environ
+            try:
+                env = Dotenv('../.env')
+                credential_table = env["CREDENTIAL_TABLE_ARN"]
+            except:
+                 env = os.environ
 
         self.sort_key = sort_key
         self.table_name = credential_table.split('/')[1]
@@ -52,42 +56,46 @@ class Credential(object):
         else:
             self.__connect()
 
+        try:
+            item = self.table.get_item(
+                Key={
+                    'credential_id': self.sort_key
+                }
+            )['Item']
 
-        item = self.table.get_item(
-            Key={
-                'credential_id': self.sort_key
-            }
-        )['Item']
 
+            read_credential = item['read_credential']
+            item = json.loads(
+                base64.b64decode(read_credential).decode('utf-8')
+            )
 
-        read_credential = item['read_credential']
-        item = json.loads(
-            base64.b64decode(read_credential).decode('utf-8')
-        )
-
-        return item
+            return item
+        except:
+            return None
 
 
     def write(self):
         """Returns the decrypted write credential from the dynamo database"""
-        if self.dynamodb:
-            pass
-        else:
-            self.__connect()
+        try:
+            if self.dynamodb:
+                pass
+            else:
+                self.__connect()
 
-        item = self.table.get_item(
-            Key={
-                'credential_id': self.sort_key
-            }
-        )['Item']
+            item = self.table.get_item(
+                Key={
+                    'credential_id': self.sort_key
+                }
+            )['Item']
 
-        write_credential = item['write_credential']
-        item = json.loads(
-            base64.b64decode(write_credential).decode('utf-8')
-        )
+            write_credential = item['write_credential']
+            item = json.loads(
+                base64.b64decode(write_credential).decode('utf-8')
+            )
 
-        return item
-
+            return item
+        except:
+            return None
 
     def __connect(self):
         self.dynamodb = boto3.resource(
