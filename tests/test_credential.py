@@ -60,13 +60,21 @@ def dynamo_write(sort_key, credential):
     )
     pass
 
+def dynamo_delete(sort_key):
+    dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('dev_credential')
+    response = table.delete_item(
+        Key={
+            'credential_id': sort_key
+        }
+    )
+    pass
+    
 
 SORT_KEY = fake_sort_key()
 def setup_test():
     CREDENTIAL = get_token()
-    #print(CREDENTIAL)
     dynamo_write(SORT_KEY, CREDENTIAL)
-
     pass
 
 def test_object_instiation():
@@ -74,7 +82,6 @@ def test_object_instiation():
     print ("setting up %s" % SORT_KEY)
     assert c.sort_key is SORT_KEY
 
-
-
-def teardown_tokens():
+def teardown_test():
+    dynamo_delete(SORT_KEY)
     pass
