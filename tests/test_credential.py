@@ -8,7 +8,7 @@ import json
 
 from faker import Factory
 from dotenv import Dotenv
-from api import credential
+from api.chalicelib import credential
 
 def date_handler(obj):
     """Convert awful date to iso"""

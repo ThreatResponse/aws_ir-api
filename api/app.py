@@ -1,4 +1,5 @@
 from chalice import Chalice
+from chalicelib import credential
 
 #The aws_ir modules we need to drive the API
 
@@ -20,7 +21,8 @@ app = Chalice(app_name='aws_ir-api')
 
 @app.route('/')
 def index():
-    return {'AWS_IR-api experimental'}
+    #credential.Credential('fhsdfdsfkjhfs')
+    return {'AWS_IR-api': 'experimental'}
 
 
 # The view function above will return {"hello": "world"}
