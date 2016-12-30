@@ -66,16 +66,14 @@ def test_disable_access_key():
         'access_key_id': get_access_key_id(),
         'compromise_type': 'KeyCompromise'
     }
-
+    #Get a client in the context of our incident account
     client = incident_client()
-
+    #Instantiate the plugin
     plugin = disableaccess_key.Disableaccess(
         client, compromised_resource, False
     )
-
-
+    #Validate the the key is actually disabled
     validation = plugin.validate()
-
     assert validation is True
 
 def teardown_test():
