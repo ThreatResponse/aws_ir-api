@@ -1,4 +1,7 @@
 bson
+chalice
+jinja2
+requests
 faker
 dotenv
 pytest-xdist

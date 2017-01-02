@@ -83,7 +83,7 @@ def test_object_instiation():
 
 def test_reading_credential():
     c = credential.Credential(SORT_KEY)
-    this_credential = c.read()
+    this_credential = c.get_read()
     print this_credential
     assert this_credential is not None
     assert this_credential['SecretAccessKey'] is not None
@@ -93,7 +93,7 @@ def test_reading_credential():
 
 def test_write_credential():
     c = credential.Credential(SORT_KEY)
-    this_credential = c.write()
+    this_credential = c.get_write()
     print this_credential
     assert this_credential is not None
     assert this_credential['SecretAccessKey'] is not None

@@ -6,6 +6,7 @@ import base64
 import os
 import json
 import time
+import uuid
 
 from faker import Factory
 from dotenv import Dotenv
@@ -24,12 +25,12 @@ except:
     raise
 
 INCIDENT_ACCESS_KEY_ID = ""
+STACKNAME="InsecureDaveKeyTest-{stack_uuid}".format(stack_uuid=uuid.uuid4().hex)
 
 def get_access_key_id():
     try:
         response = CLIENT.describe_stacks(
-            StackName='InsecureDaveKeyTest'
-
+            StackName=STACKNAME
         )
         access_key_id = response['Stacks'][0]['Outputs'][0]['OutputValue']
     except:
@@ -45,7 +46,7 @@ def setup_test():
     with open(CFN_TEMPLATE_PATH) as f:
         try:
             CLIENT.create_stack(
-                StackName='InsecureDaveKeyTest',
+                StackName=STACKNAME,
                 TemplateBody=f.read(),
                 Capabilities=[
                 'CAPABILITY_IAM'
@@ -76,7 +77,20 @@ def test_disable_access_key():
     validation = plugin.validate()
     assert validation is True
 
+
 def teardown_test():
-    CLIENT.delete_stack(
-        StackName='InsecureDaveKeyTest'
-    )
+    try:
+        #Once I had to clean up a lot of failed stacks
+        response = CLIENT.describe_stacks()
+        for stack in response['Stacks']:
+            if stack['StackName'].find('InsecureDaveKeyTest'):
+                CLIENT.delete_stack(
+                    StackName=response['Stacks'][0]['StackName']
+                )
+
+        CLIENT.delete_stack(
+            StackName=STACKNAME
+        )
+    except:
+        #There is probably no stack to delete
+        pass
