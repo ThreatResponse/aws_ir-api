@@ -1,15 +1,13 @@
-
+#!/usr/bin/python
 import os
-import requests
 import json
+
 from chalice import Chalice
 from chalicelib import credential
 
-#The aws_ir modules we need to drive the API
-
 #key compromise plugins
-from chalicelib.aws_ir.aws_ir.plugins import gather_host
-#from aws_ir.plugins import revokests_key
+from chalicelib.aws_ir.aws_ir.plugins import revokests_key
+from chalicelib.aws_ir.aws_ir.plugins import disableaccess_key
 
 #host compromise plugins
 from chalicelib.aws_ir.aws_ir.plugins import gather_host
@@ -18,23 +16,26 @@ from chalicelib.aws_ir.aws_ir.plugins import snapshotdisks_host
 from chalicelib.aws_ir.aws_ir.plugins import stop_host
 from chalicelib.aws_ir.aws_ir.plugins import tag_host
 
-#to-do find a way to async gather memory
-
 app = Chalice(app_name='aws_ir-api')
 
 
 @app.route('/')
 def index():
-    #credential.Credential('fhsdfdsfkjhfs')
     return {'AWS_IR-api': 'experimental'}
+
 
 @app.route('/credential', methods=['POST'], api_key_required=True)
 def credential_get():
+    """Takes a json post with sort_key and operation\
+    Returns key validity based on a number of Checks\
+    """
     try:
         post = app.current_request.json_body
         c = credential.Credential(post['sort_key'])
-        if post['operation']:
-            check = c.check(post['operation'])
+        if post['operation'] == 'read':
+            check = c.check('read')
+        if post['operation'] == 'write':
+            check = c.check('write')
         if check == True:
             return {'status': 'valid'}
         else:
@@ -43,6 +44,38 @@ def credential_get():
         print("Exception occured while calling")
         return {'status': 'malformed-payload'}
 
-@app.route('/key/{plugin}', methods=['POST, GET'], api_key_required=True)
-def credential_get(plugin):
-    pass
+@app.route('/key/{access_key_id}/{plugin}', methods=['POST', 'GET'], api_key_required=True)
+def key(access_key_id, plugin):
+    """Takes an access key ID and plugin based on plugin will run disable STS"""
+    post = app.current_request.json_body
+
+    c = credential.Credential(post['sort_key'])
+    print access_key_id
+
+    compromised_resource = {
+        'access_key_id': access_key_id,
+        'compromise_type': 'KeyCompromise'
+    }
+    try:
+        if c.check('write'):
+            aws_credential = c.write_credential
+            client = c.aws_client(
+                'iam',
+                aws_credential,
+                'us-west-2'
+            )
+            try:
+                plugin = disableaccess_key.Disableaccess(
+                    client=client,
+                    compromised_resource=compromised_resource,
+                    dry_run=False
+                )
+
+                status = plugin.validate()
+            except Exception as error:
+                status = False
+        else:
+            status = False
+    except:
+        status = False
+    return {'status': status}

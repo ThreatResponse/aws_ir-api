@@ -27,29 +27,46 @@ class Credential(object):
                 env = Dotenv('../.env')
                 credential_table = env["CREDENTIAL_TABLE_ARN"]
             except:
-                 env = os.environ
+                credential_table ="arn:aws:dynamodb:us-west-2:576309420438:table/dev_credential"
 
         self.sort_key = sort_key
         self.table_name = credential_table.split('/')[1]
         self.dynamodb = None
 
+    def aws_client(self, service, credential, region):
+        client = boto3.client(
+            service,
+            aws_access_key_id=credential['AccessKeyId'],
+            aws_secret_access_key=credential['SecretAccessKey'],
+            aws_session_token=credential['SessionToken'],
+            region_name='us-west-2'
+        )
+        return client
+
     def check(self, operation):
         """Returns true or false against determination if \
         the credential is valid"""
-        if operation == 'read':
-            credential = self.read()
-        elif operation == 'write':
-            credential = self.write()
+        try:
+            if operation == 'read':
+                credential = self.get_read()
+                self.read_credential = credential
+            elif operation == 'write':
+                credential = self.get_write()
+                self.write_credential = credential
+        except:
+            return False
 
         #Test expiration if not expired try to use it
         if self.__is_expired(credential) == True:
+            print "Credential is expired"
             return False
         elif self.__can_get_caller(credential) == False:
+            print "Can not get caller"
             return False
         else:
             return True
 
-    def read(self):
+    def get_read(self):
         """Returns the decrypted read credential from dyanmo database"""
         if self.dynamodb:
             pass
@@ -66,7 +83,9 @@ class Credential(object):
 
             read_credential = item['read_credential']
             item = json.loads(
-                base64.b64decode(read_credential).decode('utf-8')
+                base64.b64decode(
+                    read_credential
+                ).decode('utf-8')
             )
 
             return item
@@ -74,7 +93,7 @@ class Credential(object):
             return None
 
 
-    def write(self):
+    def get_write(self):
         """Returns the decrypted write credential from the dynamo database"""
         try:
             if self.dynamodb:
@@ -92,9 +111,10 @@ class Credential(object):
             item = json.loads(
                 base64.b64decode(write_credential).decode('utf-8')
             )
-
             return item
         except:
+            print("An exception occurred.")
+            raise
             return None
 
     def __connect(self):

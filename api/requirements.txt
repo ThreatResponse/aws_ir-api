@@ -1,0 +1,12 @@
+bson
+chalice
+jinja2
+requests
+faker
+dotenv
+pytest-xdist
+pytest
+nose
+nose-watch
+boto3
+git+ssh://git@github.com/ThreatResponse/aws_ir.git@development
