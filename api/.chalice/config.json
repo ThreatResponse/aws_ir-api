@@ -1,7 +1,7 @@
 {
   "manage_iam_role": "false",
   "iam_role_arn": "arn:aws:iam::576309420438:role/aws_ir-apiRole",
-  "lambda_arn": "arn:aws:lambda:us-west-2:576309420438:function:aws_ir-api",
+  "lambda_arn": "arn:aws:lambda:us-west-2:576309420438:function:aws_ir-api", 
   "app_name": "aws_ir-api",
   "stage": "dev"
 }
