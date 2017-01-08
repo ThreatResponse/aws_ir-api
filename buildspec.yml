@@ -11,6 +11,7 @@ phases:
       - echo "dependencies install completed `date`"
       - cd api/chalicelib && git clone https://github.com/ThreatResponse/aws_ir.git
       - cd api/chalicelib/aws_ir && git checkout development
+      - cd api/chalicelib/aws_ir && pip install -r requirements.txt
   build:
     commands:
       - echo "Starting build `date` in `pwd`"
