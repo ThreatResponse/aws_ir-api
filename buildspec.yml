@@ -1,0 +1,20 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - echo "nothing to do in install"
+  pre_build:
+    commands:
+      - echo "Installing dependencies - `pwd`"
+      - cd api && pip install -r requirements.txt
+      - echo "dependencies install completed `date`"
+      - cd api/chalicelib && git clone https://github.com/ThreatResponse/aws_ir.git
+      - cd api/chalicelib/aws_ir && git checkout development
+  build:
+    commands:
+      - echo "Starting build `date` in `pwd`"
+      - cd api && chalice deploy
+  post_build:
+    commands:
+      - echo "build completed on `date`"
