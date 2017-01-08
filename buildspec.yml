@@ -9,17 +9,17 @@ phases:
       - echo "Installing dependencies - `pwd`"
       - pip install virtualenv
       - cd api && virtualenv .
-      - cd api && source bin/activate
+      - cd api && bin/activate
       - cd api && pip install -r requirements.txt
       - echo "dependencies install completed `date`"
       - cd api/chalicelib && git clone https://github.com/ThreatResponse/aws_ir.git
       - cd api/chalicelib/aws_ir && git checkout development
-      - cd api/chalicelib/aws_ir && virtualenv . && source bin/activate
+      - cd api/chalicelib/aws_ir && virtualenv . && bin/activate
       - cd api/chalicelib/aws_ir && pip install -r requirements.txt
   build:
     commands:
       - echo "Starting build `date` in `pwd`"
-      - cd api && source bin/activate
+      - cd api && bin/activate
       - cd api && chalice deploy
   post_build:
     commands:
