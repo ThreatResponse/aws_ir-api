@@ -3,6 +3,7 @@ import os
 import json
 
 from chalice import Chalice
+from chalice import BadRequestError
 from chalicelib import credential
 
 #key compromise plugins
@@ -40,7 +41,7 @@ def credential_get():
         write = c.check('write')
         #Instead of checking the operation attempt to retreive and report both.
         return {
-            'credential': {'read_credential': read, 'write_credential': write}
+            'credential': {'read': read, 'write': write}
         }
     except:
         app.log.error("Error while attempting credential retrieval.")
@@ -48,18 +49,15 @@ def credential_get():
 
 
 @app.route(
-    '/key/{access_key_id}/{plugin}',
+    '/keys/{access_key_id}/{plugin}',
     methods=['POST', 'GET'],
     api_key_required=True
 )
-def key(access_key_id, plugin):
+def keys(access_key_id, plugin):
     """Takes an access key ID and plugin based on plugin will run disable STS"""
     try:
         post = app.current_request.json_body
-    except KeyError:
-        raise BadRequestError("Route takes an access_key_id and plugin.")
 
-    try:
         c = credential.Credential(post['sort_key'])
         compromised_resource = {
             'access_key_id': access_key_id,
@@ -79,6 +77,14 @@ def key(access_key_id, plugin):
             dry_run=False
         )
         status = plugin.validate()
-        return {}
+
+        return {'disabled': status}
+
+    except KeyError:
+        raise BadRequestError("Route takes an access_key_id and plugin.")
+
     except:
-        raise BadRequestError("AccessKey could not be disabled.")
+        raise BadRequestError("{} failed".format(plugin))
+
+
+
