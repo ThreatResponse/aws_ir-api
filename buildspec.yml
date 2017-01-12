@@ -1,26 +1,18 @@
 version: 0.1
 
 phases:
-  install:
-    commands:
-      - echo "nothing to do in install"
   pre_build:
     commands:
-      - echo "Installing dependencies - `pwd`"
-      - pip install virtualenv
-      - cd api && virtualenv .
-      - cd api && bin/activate
-      - cd api && pip install -r requirements.txt
-      - echo "dependencies install completed `date`"
-      - cd api/chalicelib && git clone https://github.com/ThreatResponse/aws_ir.git
-      - cd api/chalicelib/aws_ir && git checkout development
-      - cd api/chalicelib/aws_ir && virtualenv . && bin/activate
-      - cd api/chalicelib/aws_ir && pip install -r requirements.txt
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --region $AWS_DEFAULT_REGION)
   build:
     commands:
-      - echo "Starting build `date` in `pwd`"
-      - cd api && bin/activate
-      - cd api && chalice deploy
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $IMAGE_REPO_NAME .
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
   post_build:
     commands:
-      - echo "build completed on `date`"
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
