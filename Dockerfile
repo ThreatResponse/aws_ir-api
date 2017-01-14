@@ -33,3 +33,5 @@ RUN . bin/activate
 RUN pip install -r requirements.txt
 
 WORKDIR /aws_ir-api/api
+
+CMD ['/aws_ir-api/bin/chalice', 'deploy']
