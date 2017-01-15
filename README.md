@@ -54,3 +54,7 @@ aws_access_key_id = AK*************************
 aws_secret_access_key = Uzkb**************************
 
 ```
+## Testing instance provisioning
+
+CloudFormation assumes that you're testing in us-west-2.  You'll need an ssh keypair called incident-pony-response setup in the incident-accout.
+I store the private part of my keypair in Credstash. 
