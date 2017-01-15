@@ -34,9 +34,9 @@ def credential_get():
     try:
         post = app.current_request.json_body
         c = credential.Credential(post['sort_key'])
-        app.log.debug("Instantiating credentials for {sort_key}").format(
-            sort_key = sort_key
-        )
+        # app.log.debug("Instantiating credentials for {sort_key}").format(
+        #     sort_key = sort_key
+        # )
         read = c.check('read')
         write = c.check('write')
         #Instead of checking the operation attempt to retreive and report both.
@@ -64,7 +64,7 @@ def keys(access_key_id, plugin):
             'compromise_type': 'KeyCompromise'
         }
 
-        aws_credential = c.write_credential
+        aws_credential = c.get_write()
         client = c.aws_client(
             'iam',
             aws_credential,
@@ -83,8 +83,8 @@ def keys(access_key_id, plugin):
     except KeyError:
         raise BadRequestError("Route takes an access_key_id and plugin.")
 
-    except:
-        raise BadRequestError("{} failed".format(plugin))
+    except Exception as e:
+        raise BadRequestError("{} failed - {}".format(plugin, e))
 
 
 

@@ -57,7 +57,9 @@ class Credential(object):
             return False
 
         #Test expiration if not expired try to use it
-        if self.__is_expired(credential) == True:
+        if credential == None:
+            return False
+        elif self.__is_expired(credential) == True:
             print "Credential is expired"
             return False
         elif self.__can_get_caller(credential) == False:
@@ -113,8 +115,8 @@ class Credential(object):
             )
             return item
         except:
-            print("An exception occurred.")
-            raise
+            # print("An exception occurred.")
+            # raise
             return None
 
     def __connect(self):
@@ -148,7 +150,6 @@ class Credential(object):
             expiration = expiration.strftime('%s')
         except:
             return True
-
 
         if expiration < time.time():
             return True
