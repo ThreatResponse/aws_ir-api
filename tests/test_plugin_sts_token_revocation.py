@@ -10,7 +10,7 @@ import uuid
 
 from faker import Factory
 from dotenv import Dotenv
-from api.chalicelib.aws_ir.aws_ir.plugins import disableaccess_key
+from api.chalicelib.aws_ir.aws_ir.plugins import revokests_key
 
 
 CFN_TEMPLATE_PATH = "cfn/dummy-user.yml"
@@ -23,6 +23,7 @@ try:
     CLIENT = SESSION.client('cloudformation')
 except:
     raise
+
 
 INCIDENT_ACCESS_KEY_ID = ""
 STACKNAME="InsecureDaveKeyTest-{stack_uuid}".format(stack_uuid=uuid.uuid4().hex)
@@ -61,7 +62,7 @@ def setup_test():
 
             pass
 
-def test_disable_access_key():
+def test_session_token_revocation():
     assert INCIDENT_ACCESS_KEY_ID is not None
     compromised_resource = {
         'access_key_id': get_access_key_id(),
@@ -70,12 +71,13 @@ def test_disable_access_key():
     #Get a client in the context of our incident account
     client = incident_client()
     #Instantiate the plugin
-    plugin = disableaccess_key.Disableaccess(
+    plugin = revokests_key.RevokeSTS(
         client, compromised_resource, False
     )
     #Validate the the key is actually disabled
     validation = plugin.validate()
     assert validation is True
+
 
 
 def teardown_test():
