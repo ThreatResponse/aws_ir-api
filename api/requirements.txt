@@ -9,3 +9,4 @@ pytest
 nose
 nose-watch
 boto3
+credstash

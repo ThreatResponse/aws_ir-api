@@ -10,3 +10,4 @@ nose
 nose-watch
 boto3
 git+ssh://git@github.com/ThreatResponse/aws_ir.git@development
+credstash
