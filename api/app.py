@@ -71,20 +71,24 @@ def keys(access_key_id, plugin):
             'us-west-2'
         )
 
-        plugin = disableaccess_key.Disableaccess(
-            client=client,
-            compromised_resource=compromised_resource,
-            dry_run=False
-        )
-        status = plugin.validate()
+        if plugin == 'disable':
+            plugin = disableaccess_key.Disableaccess(
+                client=client,
+                compromised_resource=compromised_resource,
+                dry_run=False
+            )
+        elif plugin == 'revoke_sts':
+            plugin = revokests_key.RevokeSTS(
+                client=client,
+                compromised_resource=compromised_resource,
+                dry_run=False
+            )
 
-        return {'disabled': status}
+        status = plugin.validate()
+        return {plugin: status}
 
     except KeyError:
         raise BadRequestError("Route takes an access_key_id and plugin.")
 
     except Exception as e:
         raise BadRequestError("{} failed - {}".format(plugin, e))
-
-
-

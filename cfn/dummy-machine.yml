@@ -18,6 +18,7 @@ Resources:
           Value: AWS_IR-API
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn: IncidentVPC
     Properties:
       VpcId:
         Ref: IncidentVPC
@@ -25,6 +26,7 @@ Resources:
         Ref: IncidentInternetGateway
   IncidentSubnet1:
     Type: "AWS::EC2::Subnet"
+    DependsOn: IncidentVPC
     Properties:
       AvailabilityZone: "us-west-2a"
       CidrBlock: "10.0.0.0/24"
@@ -36,6 +38,7 @@ Resources:
         Ref: IncidentVPC
   IncidentSubnet2:
     Type: "AWS::EC2::Subnet"
+    DependsOn: IncidentVPC
     Properties:
       AvailabilityZone: "us-west-2b"
       CidrBlock: "10.0.1.0/24"
@@ -64,26 +67,32 @@ Resources:
         Ref: IncidentInternetGateway
   IncidentSecGroup:
     Type: "AWS::EC2::SecurityGroup"
+    DependsOn: IncidentVPC
     Properties:
       GroupDescription: "Allows ports to test instance during incident pony run"
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '80'
-        ToPort: '80'
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: '22'
-        ToPort: '22'
-        CidrIp: 0.0.0.0/0
-      - Key: Incident-Pony-Type
-        Value: AWS_IR-API
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Incident-Pony-Type
+          Value: AWS_IR-API
       VpcId:
         Ref: IncidentVPC
+  #IncidentPonyIncidentTestRole:
+  #  Type: "AWS::IAM::Role"
+  #  Properties:
+  #    RoleName: IncidentPonyTestRole
   IncidentInstance:
     Type: "AWS::EC2::Instance"
+    DependsOn: IncidentSecGroup
     Properties:
       AvailabilityZone: 'us-west-2b'
-      IamInstanceProfile: String
       ImageId: ami-1e299d7e
       InstanceInitiatedShutdownBehavior: terminate
       InstanceType: t2.nano
