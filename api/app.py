@@ -108,11 +108,11 @@ def keys(access_key_id, plugin):
     api_key_required=True
 )
 def hosts(instance_id, plugin):
-"""
-Takes an instance id and plugin in the params
-Requires a json post with compromised resource data
-to hand off to aws_ir host based plugins
-"""
+    """\
+    Takes an instance id and plugin in the params\
+    Requires a json post with compromised resource data\
+    to hand off to aws_ir host based plugins\
+    """
     try:
         post = app.current_request.json_body
 
@@ -146,6 +146,7 @@ to hand off to aws_ir host based plugins
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
+
     except KeyError:
         raise BadRequestError(
             "Route requires instance_id, region, case_number, private\
