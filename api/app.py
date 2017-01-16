@@ -140,6 +140,12 @@ to hand off to aws_ir host based plugins
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
+        elif plugin == 'tag_host':
+            plugin_client = tag_host.Tag(
+                client=client,
+                compromised_resource=compromised_resource,
+                dry_run=False
+            )
     except KeyError:
         raise BadRequestError(
             "Route requires instance_id, region, case_number, private\

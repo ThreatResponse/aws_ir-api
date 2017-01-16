@@ -108,3 +108,7 @@ Resources:
           Value: FooBarXYZDept
         - Key: SuspiciousExfilTag
           Value: asdksdjhasdkjasiy==
+Outputs:
+  InstancePublicIp:
+    Value:
+      "Fn::GetAtt": [ IncidentInstance, PublicIp ]

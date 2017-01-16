@@ -7,6 +7,9 @@ Resources:
       Path: "/"
       LoginProfile:
         Password: myP@ssW0rd
+      Tags:
+        - Key: Incident-Pony-Type
+          Value: AWS_IR-API
   InsecureDaveKey:
     Type: AWS::IAM::AccessKey
     Properties:

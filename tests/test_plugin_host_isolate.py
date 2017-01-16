@@ -13,7 +13,8 @@ from faker import Factory
 from dotenv import Dotenv
 from api.chalicelib.aws_ir.aws_ir.plugins import isolate_host
 
-
+#To-Do
+# 1. test creates a security group that blocks stack deletion 
 
 CFN_TEMPLATE_PATH = "cfn/dummy-machine.yml"
 try:
