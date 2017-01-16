@@ -1,9 +1,12 @@
 #!/usr/bin/python
 import os
 import json
+import boto3
+import botocore
 
 from chalice import Chalice
 from chalice import BadRequestError
+from chalice import UnauthorizedError
 from chalicelib import credential
 
 #key compromise plugins
@@ -72,23 +75,29 @@ def keys(access_key_id, plugin):
         )
 
         if plugin == 'disable':
-            plugin = disableaccess_key.Disableaccess(
+            plugin_client = disableaccess_key.Disableaccess(
                 client=client,
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
         elif plugin == 'revoke_sts':
-            plugin = revokests_key.RevokeSTS(
+            plugin_client = revokests_key.RevokeSTS(
                 client=client,
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
 
-        status = plugin.validate()
-        return {plugin: status}
+        return {plugin: plugin_client.validate()}
 
     except KeyError:
         raise BadRequestError("Route takes an access_key_id and plugin.")
 
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'AccessDenied':
+            raise UnauthorizedError(e)
+        else:
+            raise Exception(e)
+
     except Exception as e:
+        print e
         raise BadRequestError("{} failed - {}".format(plugin, e))
