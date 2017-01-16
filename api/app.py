@@ -101,3 +101,47 @@ def keys(access_key_id, plugin):
     except Exception as e:
         print e
         raise BadRequestError("{} failed - {}".format(plugin, e))
+
+@app.route(
+    '/hosts/{instance_id}/{plugin}',
+    methods=['POST', 'GET'],
+    api_key_required=True
+)
+def hosts(instance_id, plugin):
+"""
+Takes an instance id and plugin in the params
+Requires a json post with compromised resource data
+to hand off to aws_ir host based plugins
+"""
+    try:
+        post = app.current_request.json_body
+
+        c = credential.Credential(post['sort_key'])
+
+        compromised_resource = {
+            'instance_id': post['instance_id'],
+            'region': post['region'],
+            'case_number': post['case_number'],
+            'public_ip_address': post['public_ip_address'],
+            'private_ip_address':  post['private_ip_address'],
+            'compromise_type': 'HostCompromise'
+        }
+
+        aws_credential = c.get_write()
+        client = c.aws_client(
+            'ec2',
+            aws_credential,
+            post['region']
+        )
+
+        if plugin == 'isolate_host':
+            plugin_client = isolate_host.Isolate(
+                client=client,
+                compromised_resource=compromised_resource,
+                dry_run=False
+            )
+    except KeyError:
+        raise BadRequestError(
+            "Route requires instance_id, region, case_number, private\
+            public_ip_address, compromise_type, sort_key"
+        )
