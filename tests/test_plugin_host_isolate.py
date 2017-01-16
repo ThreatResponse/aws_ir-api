@@ -27,9 +27,6 @@ except:
     raise
 
 
-
-
-
 STACKNAME="InstanceCompromise-{stack_uuid}".format(stack_uuid=uuid.uuid4().hex)
 INCIDENT_PUBLIC_IP=None
 
