@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import os
 import json
-import boto3
 import botocore
 
 from chalice import Chalice
@@ -108,11 +107,11 @@ def keys(access_key_id, plugin):
     api_key_required=True
 )
 def hosts(instance_id, plugin):
-"""
-Takes an instance id and plugin in the params
-Requires a json post with compromised resource data
-to hand off to aws_ir host based plugins
-"""
+    """
+    Takes an instance id and plugin in the params
+    Requires a json post with compromised resource data
+    to hand off to aws_ir host based plugins
+    """
     try:
         post = app.current_request.json_body
 
@@ -124,6 +123,7 @@ to hand off to aws_ir host based plugins
             'case_number': post['case_number'],
             'public_ip_address': post['public_ip_address'],
             'private_ip_address':  post['private_ip_address'],
+            'vpc_id':  post['vpc_id'],
             'compromise_type': 'HostCompromise'
         }
 
@@ -146,8 +146,22 @@ to hand off to aws_ir host based plugins
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
+
+        return {plugin: plugin_client.validate()}
+
     except KeyError:
         raise BadRequestError(
             "Route requires instance_id, region, case_number, private\
-            public_ip_address, compromise_type, sort_key"
+            public_ip_address, vpc_id, compromise_type, sort_key"
         )
+
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'AccessDenied':
+            raise UnauthorizedError(e)
+        else:
+            raise Exception(e)
+
+    except Exception as e:
+        print e
+        raise BadRequestError("{} failed - {}".format(plugin, e))
+
