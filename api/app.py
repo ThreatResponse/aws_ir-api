@@ -7,6 +7,8 @@ from chalice import Chalice
 from chalice import BadRequestError
 from chalice import UnauthorizedError
 from chalicelib import credential
+from chalicelib import ponycrypto
+from chalicelib import uploader
 
 #key compromise plugins
 from chalicelib.aws_ir.aws_ir.plugins import revokests_key
@@ -86,6 +88,7 @@ def keys(access_key_id, plugin):
                 dry_run=False
             )
 
+
         return {plugin: plugin_client.validate()}
 
     except KeyError:
@@ -128,6 +131,7 @@ def hosts(instance_id, plugin):
         }
 
         aws_credential = c.get_write()
+
         client = c.aws_client(
             'ec2',
             aws_credential,
@@ -146,6 +150,47 @@ def hosts(instance_id, plugin):
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
+        elif plugin == 'gather':
+            plugin_client = gather_host.Gather(
+                client=client,
+                compromised_resource=compromised_resource,
+                dry_run=False,
+                api=True
+            )
+            storage = True
+
+            """Plugin requires storage of artifacts"""
+
+        if storage == True:
+            s3_client = c.aws_client(
+                's3',
+                aws_credential,
+                post['bucket_region'] #Need to figure out the key for this
+            )
+
+            case_file_storage = uploader.S3Uploader(
+                post['bucket'],
+                s3_client
+            )
+
+            #KMS Client in the context of the role
+            kms_client = boto3.client('kms')
+
+            secure_storage = ponycrypto.PonyCrypto(
+                post['kms_key_arn'],
+                kms_client
+            )
+
+            for k,v in plugin_client.evidence:
+                item = secure_storage.encrypt(
+                    plugin_client[k]
+                )
+                #Upload the encrypted item
+                case_file_storage.upload(item['payload'], k)
+                #Upload the data key
+                case_file_storage.upload(item['payload'], "{name}.key").format(
+                    name=k
+                )
 
         return {plugin: plugin_client.validate()}
 
