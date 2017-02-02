@@ -19,34 +19,47 @@ def setup_test():
 
 def test_initialize():
     u = uploader.S3Uploader(
-        CLIENT,
-        UUID
+        UUID,
+        CLIENT
     )
 
     assert u is not None
 
 def test_upload():
     u = uploader.S3Uploader(
-        CLIENT,
-        UUID
+        UUID,
+        CLIENT
     )
 
-    result = u.upload('Thisisasampleofsomecontent')
+    result = u.upload('Thisisasampleofsomecontent', 'TestFileName')
     assert result is not None
 
 
 def test_validate():
     u = uploader.S3Uploader(
-        CLIENT,
-        UUID
+        UUID,
+        CLIENT
     )
 
-    result = u.validate('Thisisasampleofsomecontent')
+    result = u.validate('Thisisasampleofsomecontent', 'TestFileName')
     assert result is True
 
 
 def teardown_test():
-    response = CLIENT.delete_bucket(
-        Bucket=UUID
-    )
-    pass
+    try:
+        CLIENT.delete_objects(
+            Bucket=UUID,
+            Delete={
+                'Objects': [
+                    {
+                        'Key': 'TestFileName'
+                    }
+                ]
+            }
+        )
+
+        response = CLIENT.delete_bucket(
+            Bucket=UUID
+        )
+    except:
+        pass
