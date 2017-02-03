@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import json
+import boto3
 import botocore
 
 from chalice import Chalice
@@ -181,9 +182,9 @@ def hosts(instance_id, plugin):
                 kms_client
             )
 
-            for k,v in plugin_client.evidence:
+            for k in plugin_client.evidence.keys():
                 item = secure_storage.encrypt(
-                    plugin_client[k]
+                    plugin_client.evidence[k]
                 )
                 #Upload the encrypted item
                 case_file_storage.upload(item['payload'], k)
