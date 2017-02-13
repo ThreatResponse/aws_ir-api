@@ -32,10 +32,6 @@ def get_token():
     return response
 
 
-def delete_token():
-    """Remove token from dynamo table"""
-    pass
-
 def fake_sort_key():
     """Generate a fake sort-key in the form of user-email+account_id"""
     fake = Factory.create()

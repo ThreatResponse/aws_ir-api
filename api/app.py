@@ -3,6 +3,7 @@ import os
 import json
 import boto3
 import botocore
+import logging
 
 from chalice import Chalice
 from chalice import BadRequestError
@@ -33,15 +34,13 @@ def index():
 
 @app.route('/credential', methods=['POST'], api_key_required=True)
 def credential_get():
-    """Takes a json post with sort_key and operation\
+    """Takes a json post with sort_key
     Returns key validity based on a number of Checks\
     """
     try:
         post = app.current_request.json_body
         c = credential.Credential(post['sort_key'])
-        # app.log.debug("Instantiating credentials for {sort_key}").format(
-        #     sort_key = sort_key
-        # )
+
         read = c.check('read')
         write = c.check('write')
         #Instead of checking the operation attempt to retreive and report both.
@@ -120,6 +119,12 @@ def hosts(instance_id, plugin):
         post = app.current_request.json_body
 
         c = credential.Credential(post['sort_key'])
+        aws_credential = c.get_write()
+        client = c.aws_client(
+            'ec2',
+            aws_credential,
+            post['region']
+        )
 
         compromised_resource = {
             'instance_id': post['instance_id'],
@@ -131,26 +136,22 @@ def hosts(instance_id, plugin):
             'compromise_type': 'HostCompromise'
         }
 
-        aws_credential = c.get_write()
-
-        client = c.aws_client(
-            'ec2',
-            aws_credential,
-            post['region']
-        )
-
         if plugin == 'isolate_host':
             plugin_client = isolate_host.Isolate(
                 client=client,
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
+            storage = False
+
         elif plugin == 'tag_host':
             plugin_client = tag_host.Tag(
                 client=client,
                 compromised_resource=compromised_resource,
                 dry_run=False
             )
+            storage = False
+
         elif plugin == 'gather':
             plugin_client = gather_host.Gather(
                 client=client,
@@ -182,6 +183,8 @@ def hosts(instance_id, plugin):
                 kms_client
             )
 
+            print plugin_client.evidence.keys()
+
             for k in plugin_client.evidence.keys():
                 item = secure_storage.encrypt(
                     plugin_client.evidence[k]
@@ -209,5 +212,5 @@ def hosts(instance_id, plugin):
             raise Exception(e)
 
     except Exception as e:
-        print e
+        logging.exception("Exception in {}:".format(plugin))
         raise BadRequestError("{} failed - {}".format(plugin, e))
