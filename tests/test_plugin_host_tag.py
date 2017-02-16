@@ -7,7 +7,6 @@ import os
 import json
 import time
 import uuid
-import socket
 
 from faker import Factory
 from dotenv import Dotenv
@@ -16,124 +15,72 @@ from api.chalicelib.aws_ir.aws_ir.plugins import tag_host
 
 
 CFN_TEMPLATE_PATH = "cfn/dummy-machine.yml"
-try:
-    SESSION = boto3.Session(
-        profile_name='incident-account',
-        region_name='us-west-2'
-    )
+SESSION = boto3.Session(
+    profile_name='incident-account',
+    region_name='us-west-2'
+)
 
-    CLIENT = SESSION.client('cloudformation')
-except:
-    raise
-
+CFN_CLIENT = SESSION.client('cloudformation')
+EC2_CLIENT = SESSION.client('ec2')
 
 STACKNAME="InstanceCompromise-{stack_uuid}".format(stack_uuid=uuid.uuid4().hex)
-INCIDENT_PUBLIC_IP=None
 
-def incident_client():
-    return SESSION.client('ec2')
-
-def port_is_open(ip, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex((ip,port))
-    if result == 0:
-       return True
-    else:
-       return False
-
-def instance_ready():
-    try:
-        response = CLIENT.describe_stacks(
-            StackName=STACKNAME
-        )
-        instanceIP = response['Stacks'][0]['Outputs'][0]['OutputValue']
-        INCIDENT_PUBLIC_IP = instanceIP
-        return instanceIP
-    except:
-        time.sleep(10)
-        return None
-
-
-def setup_test():
-    template = ""
+def setup_module(module):
+    print ("setup_module:%s" % module.__name__)
     with open(CFN_TEMPLATE_PATH) as f:
-        try:
-            CLIENT.create_stack(
-                StackName=STACKNAME,
-                TemplateBody=f.read(),
-                Capabilities=[
-                'CAPABILITY_IAM'
-                ]
-            )
-            while instance_ready() == None:
-                pass
-        except:
-            while instance_ready() == None:
-                pass
+        CFN_CLIENT.create_stack(
+            StackName = STACKNAME,
+            TemplateBody = f.read(),
+            Capabilities = ['CAPABILITY_IAM']
+        )
 
-def test_incident_public_ip_exists():
-    assert instance_ready() is not None
+def teardown_module(module):
+    print ("teardown_module:%s" % module.__name__)
+    CFN_CLIENT.delete_stack(StackName=STACKNAME)
 
-
-def test_plugin():
-    client = incident_client()
-    response = client.describe_instances(
-            Filters=[
-            {
-                'Name': 'instance-state-name',
-                'Values': [
-                    'running',
-                    'pending'
-                ]
-            },
-        ],
+def find_host():
+    host_instance_id = find_host_id()
+    response = EC2_CLIENT.describe_instances(
+            InstanceIds=[host_instance_id]
     )
-    incident_instance = None
 
-    #Maybe can replace with list comprehension
-    for instance in response['Reservations']:
-        ip_address = instance.get('PublicIpAddress', None)
-        if ip_address == INCIDENT_PUBLIC_IP:
-            print("Instance Found")
-            incident_instance = instance['Instances'][0]
+    incident_instance = response['Reservations'][0]['Instances'][0]
 
-    #Crafting this by hand to avoid complex interaction
-    #AWS_IR inventory class needs a refactor.
-
-    resource = {
+    return {
         'vpc_id': incident_instance['VpcId'],
         'region': 'us-west-2',
         'case_number': '1234567',
         'instance_id':  incident_instance['InstanceId'],
         'compromise_type': 'host',
         'private_ip_address': incident_instance.get('PrivateIpAddress', None),
+        'public_ip_address': incident_instance.get('PublicIpAddress', None),
     }
 
+def find_host_id():
+    host_instance_id = None
+    retries = 0
+    while host_instance_id == None and retries < 30:
+        try:
+            response = CFN_CLIENT.describe_stacks(
+                StackName=STACKNAME
+            )
+            host_instance_id = response['Stacks'][0]['Outputs'][0]['OutputValue']
+            print "found {}".format(host_instance_id)
+            return host_instance_id
+
+        except:
+            ++retries
+            time.sleep(10)
+            continue
+
+def test_plugin():
+    resource = find_host()
 
     plugin = tag_host.Tag(
-        client=client,
+        client=EC2_CLIENT,
         compromised_resource=resource,
         dry_run=False
 
     )
     status = plugin.validate()
     assert status == True
-
-def teardown_test():
-    try:
-        #Once I had to clean up a lot of failed stacks
-        #I may move this to an hourly cloud custodian package.
-        response = CLIENT.describe_stacks()
-        for stack in response['Stacks']:
-            if stack['StackName'].find('InstanceCompromise'):
-                CLIENT.delete_stack(
-                    StackName=response['Stacks'][0]['StackName']
-                )
-
-        CLIENT.delete_stack(
-            StackName=STACKNAME
-        )
-        pass
-    except:
-        #There is probably no stack to delete
-        pass

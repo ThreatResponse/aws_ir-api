@@ -10,7 +10,7 @@ import uuid
 
 from faker import Factory
 from dotenv import Dotenv
-from api.chalicelib.aws_ir.aws_ir.plugins import isolate_host
+from api.chalicelib.aws_ir.aws_ir.plugins import gather_host
 
 #To-Do
 # 1. test creates a security group that blocks stack deletion
@@ -76,11 +76,11 @@ def find_host_id():
 
 def test_plugin():
     resource = find_host()
-
-    plugin = isolate_host.Isolate(
+    plugin = gather_host.Gather(
         client=EC2_CLIENT,
         compromised_resource=resource,
-        dry_run=False
+        dry_run=False,
+        api=True
 
     )
     status = plugin.validate()

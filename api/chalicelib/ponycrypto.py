@@ -44,9 +44,10 @@ class PonyCrypto(object):
             Takes a data key and returns ciphertext for
             use in public encrypt method
         """
+        str_payload = str(payload)
         pad = lambda s: s + (32 - len(s) % 32) * ' '
         crypter = AES.new(plaintext_key)
-        ciphertext = base64.b64encode(crypter.encrypt(pad(payload)))
+        ciphertext = base64.b64encode(crypter.encrypt(pad(str_payload)))
         return ciphertext
 
     def __generate_data_key(self):

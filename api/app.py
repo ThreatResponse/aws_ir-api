@@ -101,7 +101,7 @@ def keys(access_key_id, plugin):
             raise Exception(e)
 
     except Exception as e:
-        print e
+        logging.exception("Exception in {}:".format(plugin))
         raise BadRequestError("{} failed - {}".format(plugin, e))
 
 @app.route(
@@ -164,14 +164,15 @@ def hosts(instance_id, plugin):
             """Plugin requires storage of artifacts"""
 
         if storage == True:
+            storage = post['storage']
             s3_client = c.aws_client(
                 's3',
                 aws_credential,
-                post['bucket_region'] #Need to figure out the key for this
+                storage.get('bucket_region', post['region'])
             )
 
             case_file_storage = uploader.S3Uploader(
-                post['bucket'],
+                storage['bucket'],
                 s3_client
             )
 
@@ -179,11 +180,11 @@ def hosts(instance_id, plugin):
             kms_client = boto3.client('kms')
 
             secure_storage = ponycrypto.PonyCrypto(
-                post['kms_key_arn'],
+                storage['kms_key_arn'],
                 kms_client
             )
 
-            print plugin_client.evidence.keys()
+            # print plugin_client.evidence.keys()
 
             for k in plugin_client.evidence.keys():
                 item = secure_storage.encrypt(
@@ -192,23 +193,20 @@ def hosts(instance_id, plugin):
                 #Upload the encrypted item
                 case_file_storage.upload(item['payload'], k)
                 #Upload the data key
-                case_file_storage.upload(item['payload'], "{name}.key").format(
-                    name=k
-                )
+                case_file_storage.upload(item['payload'], "{}.key".format(k))
 
         return {plugin: plugin_client.validate()}
 
 
-    except KeyError:
-        raise BadRequestError(
-            "Route requires instance_id, region, case_number, private\
-            public_ip_address, vpc_id, compromise_type, sort_key"
-        )
+    except KeyError as e:
+        logging.exception("Exception in {}:".format(plugin))
+        raise BadRequestError("Missing required value: {}".format(e))
 
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == 'AccessDenied':
             raise UnauthorizedError(e)
         else:
+            logging.exception("Exception in {}:".format(plugin))
             raise Exception(e)
 
     except Exception as e:

@@ -109,6 +109,6 @@ Resources:
         - Key: SuspiciousExfilTag
           Value: asdksdjhasdkjasiy==
 Outputs:
-  InstancePublicIp:
+  InstanceId:
     Value:
-      "Fn::GetAtt": [ IncidentInstance, PublicIp ]
+      "Ref": "IncidentInstance"

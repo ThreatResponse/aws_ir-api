@@ -20,6 +20,7 @@ SESSION = boto3.Session(
     )
 EC2_CLIENT = SESSION.client('ec2')
 CFN_CLIENT = SESSION.client('cloudformation')
+S3_CLIENT = boto3.client('s3')
 
 STACKNAME="InstanceCompromise-{stack_uuid}".format(stack_uuid=uuid.uuid4().hex)
 FAKE_SORT_KEY="000account000+awsir-api-test-user"
@@ -29,14 +30,9 @@ compromised_resource = {}
 def setup_module(module):
     print ("setup_module:%s" % module.__name__)
     create_stack()
-    module.compromised_resource = find_host()
     create_credential()
-
-
-def teardown_module(module):
-    print ("teardown_module:%s" % module.__name__)
-    CFN_CLIENT.delete_stack(StackName=STACKNAME)
-    destroy_credential()
+    create_bucket()
+    module.compromised_resource = find_host()
 
 def create_credential():
     """Write our fake test cred to dynamo"""
@@ -52,12 +48,23 @@ def create_credential():
     )
     pass
 
+def create_bucket():
+    try:
+        S3_CLIENT.create_bucket(
+            Bucket='apitest-1234567',
+            CreateBucketConfiguration={
+                'LocationConstraint': 'us-west-2'
+            }
+        )
+    except:
+        print "Bucket already exists"
+
 def get_credential():
     """Get a temporary token for this user to store in Dyanmo for retrieval"""
-    client = boto3.client('sts')
+    sts_client = SESSION.client('sts')
 
     #Generate a very short lived token to store in dynamo
-    response = client.get_session_token(
+    response = sts_client.get_session_token(
         DurationSeconds=900
     )['Credentials']
 
@@ -65,15 +72,6 @@ def get_credential():
     urlsafe_response = json.dumps(response)
     response = base64.b64encode(urlsafe_response).encode('utf-8')
     return response
-
-def destroy_credential():
-    dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
-    table = dynamodb.Table('dev_credential')
-    response = table.delete_item(
-        Key={
-            'credential_id': FAKE_SORT_KEY
-        }
-    )
 
 def create_stack():
     with open(CFN_TEMPLATE_PATH) as f:
@@ -84,26 +82,12 @@ def create_stack():
         )
 
 def find_host():
-    host_public_ip = find_host_ip()
+    host_instance_id = find_host_id()
     response = EC2_CLIENT.describe_instances(
-            Filters=[
-            {
-                'Name': 'instance-state-name',
-                'Values': [
-                    'running',
-                    'pending'
-                ]
-            },
-        ],
+            InstanceIds=[host_instance_id]
     )
 
-    incident_instance = None
-    for reservation in response['Reservations']:
-        instance = reservation['Instances'][0]
-        ip_address = instance.get('PublicIpAddress', None)
-        if ip_address == host_public_ip:
-            print("Instance Found")
-            incident_instance = instance
+    incident_instance = response['Reservations'][0]['Instances'][0]
 
     return {
         'vpc_id': incident_instance['VpcId'],
@@ -115,18 +99,20 @@ def find_host():
         'public_ip_address': incident_instance.get('PublicIpAddress', None),
     }
 
-def find_host_ip():
-    host_public_ip = None
-    while host_public_ip == None:
+def find_host_id():
+    host_instance_id = None
+    retries = 0
+    while host_instance_id == None and retries < 30:
         try:
             response = CFN_CLIENT.describe_stacks(
                 StackName=STACKNAME
             )
-            ip = response['Stacks'][0]['Outputs'][0]['OutputValue']
-            print ip
-            return ip
+            host_instance_id = response['Stacks'][0]['Outputs'][0]['OutputValue']
+            print "found {}".format(host_instance_id)
+            return host_instance_id
 
         except:
+            ++retries
             time.sleep(10)
             continue
 
@@ -143,6 +129,11 @@ class AwsirApi(object):
 
     def post(self, plugin, host):
         host['sort_key'] = FAKE_SORT_KEY
+        host['storage'] = {
+            'kms_key_arn': 'arn:aws:kms:us-west-2:576309420438:key/1fe91e7c-52bb-4ada-8447-11484eb78ddb',
+            'bucket': "apitest-1234567"
+        }
+
         print("{} {}").format(plugin, host)
         endpoint = "/hosts/{}/{}".format(host.get('instance_id'), plugin)
 
@@ -150,10 +141,10 @@ class AwsirApi(object):
         return response
 
 
+
 def test_index():
     print("If this fails make sure Chalice local is running")
     assert AwsirApi().get_json('/') == {'AWS_IR-api': 'experimental'}
-
 
 def test_isolate():
     response = AwsirApi().post('isolate_host', compromised_resource)
@@ -167,3 +158,32 @@ def test_gather():
     response = AwsirApi().post('gather', compromised_resource)
     assert response.json() == {'gather': True}
 
+def teardown_module(module):
+    print ("teardown_module:%s" % module.__name__)
+    CFN_CLIENT.delete_stack(StackName=STACKNAME)
+    destroy_credential()
+    # delete_bucket()
+
+def destroy_credential():
+    dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('dev_credential')
+    response = table.delete_item(
+        Key={
+            'credential_id': FAKE_SORT_KEY
+        }
+    )
+
+def delete_bucket():
+    S3_CLIENT.delete_objects(
+            Bucket=UUID,
+            Delete={
+                'Objects': [
+                    {
+                        'Key': 'TestFileName'
+                    }
+                ]
+            }
+        )
+
+
+    S3_CLIENT.delete_bucket(Bucket='apitest-1234567')
