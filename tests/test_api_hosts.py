@@ -24,6 +24,7 @@ S3_CLIENT = boto3.client('s3')
 
 STACKNAME="InstanceCompromise-{stack_uuid}".format(stack_uuid=uuid.uuid4().hex)
 FAKE_SORT_KEY="000account000+awsir-api-test-user"
+BUCKET_NAME="apitest-1234567"
 
 compromised_resource = {}
 
@@ -51,7 +52,7 @@ def create_credential():
 def create_bucket():
     try:
         S3_CLIENT.create_bucket(
-            Bucket='apitest-1234567',
+            Bucket=BUCKET_NAME,
             CreateBucketConfiguration={
                 'LocationConstraint': 'us-west-2'
             }
@@ -97,6 +98,7 @@ def find_host():
         'compromise_type': 'host',
         'private_ip_address': incident_instance.get('PrivateIpAddress', None),
         'public_ip_address': incident_instance.get('PublicIpAddress', None),
+        'examiner_cidr_range': '0.0.0.0/0',
     }
 
 def find_host_id():
@@ -174,16 +176,7 @@ def destroy_credential():
     )
 
 def delete_bucket():
-    S3_CLIENT.delete_objects(
-            Bucket=UUID,
-            Delete={
-                'Objects': [
-                    {
-                        'Key': 'TestFileName'
-                    }
-                ]
-            }
-        )
-
-
-    S3_CLIENT.delete_bucket(Bucket='apitest-1234567')
+    bucket = boto3.resource('s3').Bucket(BUCKET_NAME)
+    for key in bucket.objects.all():
+        key.delete()
+    bucket.delete()

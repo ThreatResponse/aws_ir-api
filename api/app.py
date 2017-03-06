@@ -129,10 +129,11 @@ def hosts(instance_id, plugin):
         compromised_resource = {
             'instance_id': post['instance_id'],
             'region': post['region'],
-            'case_number': post['case_number'],
             'public_ip_address': post['public_ip_address'],
             'private_ip_address':  post['private_ip_address'],
             'vpc_id':  post['vpc_id'],
+            'examiner_cidr_range': post.get('examiner_cidr_range', '0.0.0.0/0'),
+            'case_number': post['case_number'],
             'compromise_type': 'HostCompromise'
         }
 
@@ -165,9 +166,8 @@ def hosts(instance_id, plugin):
 
         if storage == True:
             storage = post['storage']
-            s3_client = c.aws_client(
+            s3_client = boto3.client( #what credential to use?
                 's3',
-                aws_credential,
                 storage.get('bucket_region', post['region'])
             )
 
